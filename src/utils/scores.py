@@ -7,7 +7,7 @@ Functions:
     calculate_clustering_scores: Calculates multiple clustering performance scores.
 """
 from typing import Dict
-from src.config import ( 
+from config import ( 
     np, silhouette_score, calinski_harabasz_score, davies_bouldin_score 
 )
 

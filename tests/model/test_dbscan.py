@@ -16,11 +16,11 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from src.config import (
-    np,pytest,BATCH_SIZE
+    np,pytest,BATCH_SIZE, mock_task
 )
 from src.data.radar_synthetic import get_dataloader
 from src.model.dbscan import DBSCANClusterer
-
+from tests.conftest import mock_task
 @pytest.fixture
 def dataloader():
     """
@@ -48,27 +48,13 @@ def features_scaled(dataloader):
     all_data = np.concatenate(all_data, axis=0)
     return all_data
 
-def test_dbscan_init():
-    """
-    Test the initialization of DBSCANClusterer.
-
-    Ensures that the DBSCANClusterer instance has a 'k' attribute
-    and that it's greater than 0.
-    """
-    dbscan = DBSCANClusterer()
+def test_dbscan_init(mock_task):
+    dbscan = DBSCANClusterer(task=mock_task)
     assert hasattr(dbscan, 'k')
     assert dbscan.k > 0
 
-def test_dbscan_run(features_scaled):
-    """
-    Test the run method of DBSCANClusterer.
-
-    Args:
-        features_scaled: The features_scaled fixture.
-
-    Ensures that the run method returns a dictionary with expected keys and value types.
-    """
-    dbscan = DBSCANClusterer()
+def test_dbscan_run(features_scaled, mock_task):
+    dbscan = DBSCANClusterer(task=mock_task)
     results = dbscan.run(None, features_scaled)
     
     assert 'scores' in results
@@ -85,13 +71,8 @@ def test_dbscan_run(features_scaled):
     assert isinstance(results['min_samples'], int)
     assert results['min_samples'] > 0
 
-def test_dbscan_find_knee_point():
-    """
-    Test the find_knee_point method of DBSCANClusterer.
-
-    Ensures that the method correctly identifies the knee point in a simple array.
-    """
-    dbscan = DBSCANClusterer()
+def test_dbscan_find_knee_point(mock_task):
+    dbscan = DBSCANClusterer(task=mock_task)
     distances = np.array([1, 2, 3, 4, 10, 11, 12])
     knee_point = dbscan.find_knee_point(distances)
     assert knee_point == 4

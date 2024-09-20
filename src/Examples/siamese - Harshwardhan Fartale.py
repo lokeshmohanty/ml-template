@@ -3,6 +3,7 @@ import torch
 import torch.nn.functional as F
 from torchvision.models import resnet101, ResNet101_Weights
 from torch.nn import TripletMarginLoss
+
 class SiameseNetwork(nn.Module):
     """
     Defines the Siamese Neural Network Class
@@ -95,4 +96,3 @@ class SiameseNetwork(nn.Module):
         print(f'Triplet Accuracy: {triplet_correct}/{total_samples} ({triplet_accuracy:.2f}%)')
         print(f'Classification Accuracy: {classification_correct}/{total_samples} '
               f'({classification_accuracy:.2f}%)\n')
-        

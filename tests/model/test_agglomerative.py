@@ -16,15 +16,16 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from src.config import ( 
-    np,pytest,BATCH_SIZE
+    np,pytest,BATCH_SIZE, mock_task
 )
 from src.data.radar_synthetic import get_dataloader
 from src.model.agglomerative import AgglomerativeClusterer
+from tests.conftest import mock_task
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def dataloader():
-    return get_dataloader(batch_size=BATCH_SIZE, shuffle=True)
-
+    return get_dataloader(batch_size=BATCH_SIZE, shuffle=True, num_workers=0)
+    return get_dataloader(batch_size=BATCH_SIZE, shuffle=True, num_workers=0)
 @pytest.fixture
 def features_scaled(dataloader):
     all_data = []
@@ -33,12 +34,16 @@ def features_scaled(dataloader):
     all_data = np.concatenate(all_data, axis=0)
     return all_data
 
-def test_agglomerative_init():
-    agglomerative = AgglomerativeClusterer()
+def test_agglomerative_init(mock_task):
+    agglomerative = AgglomerativeClusterer(task=mock_task)
+def test_agglomerative_init(mock_task):
+    agglomerative = AgglomerativeClusterer(task=mock_task)
     assert hasattr(agglomerative, 'run')
 
-def test_agglomerative_run(features_scaled):
-    agglomerative = AgglomerativeClusterer()
+def test_agglomerative_run(features_scaled, mock_task):
+    agglomerative = AgglomerativeClusterer(task=mock_task)
+def test_agglomerative_run(features_scaled, mock_task):
+    agglomerative = AgglomerativeClusterer(task=mock_task)
     results = agglomerative.run(None, features_scaled)
     
     assert 'scores' in results

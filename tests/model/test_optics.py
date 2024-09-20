@@ -16,11 +16,11 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from src.config import (
-    np,pytest,BATCH_SIZE
+    np,pytest,BATCH_SIZE, mock_task
 )
 from src.data.radar_synthetic import get_dataloader
 from src.model.optics import OPTICSClusterer
-
+from tests.conftest import mock_task
 @pytest.fixture
 def dataloader():
     """
@@ -48,16 +48,16 @@ def features_scaled(dataloader):
     all_data = np.concatenate(all_data, axis=0)
     return all_data
 
-def test_optics_init():
+def test_optics_init(mock_task):
     """
     Test the initialization of OPTICSClusterer.
 
     Ensures that the OPTICSClusterer instance has a 'run' method.
     """
-    optics = OPTICSClusterer()
+    optics = OPTICSClusterer(task=mock_task)
     assert hasattr(optics, 'run')
 
-def test_optics_run(features_scaled):
+def test_optics_run(features_scaled, mock_task):
     """
     Test the run method of OPTICSClusterer.
 
@@ -66,7 +66,7 @@ def test_optics_run(features_scaled):
 
     Ensures that the run method returns a dictionary with expected keys and value types.
     """
-    optics = OPTICSClusterer()
+    optics = OPTICSClusterer(task=mock_task)
     results = optics.run(None, features_scaled)
     
     assert 'scores' in results

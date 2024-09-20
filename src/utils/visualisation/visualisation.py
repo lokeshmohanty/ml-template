@@ -1,4 +1,4 @@
-from src.config import *
+from config import *
 
 
 def get_embeddings(model, dataloader, device):

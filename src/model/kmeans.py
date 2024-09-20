@@ -8,15 +8,29 @@ Imports:
     - NumPy, KMeans, silhouette_score, MAX_CLUSTERS and matplotlib plt from src.config
     - calculate_clustering_scores from src.utils.scores
 """
-
+from clearml import Task
 from typing import Dict, Any, List
-from src.config import (
+from config import (
     np, KMeans, silhouette_score, MAX_CLUSTERS, plt
 )
-from src.utils.scores import calculate_clustering_scores
+from utils.scores import calculate_clustering_scores
+from utils.visualization import plot_kmeans
+import os
+
+from utils.visualization import plot_kmeans
+import os
+
 class KMeansClusterer:
-    def __init__(self):
+    def __init__(self, task=None):
         self.max_clusters = MAX_CLUSTERS
+        if task is None:
+            self.task = Task.init(
+                project_name='CAESAR',
+                task_name='kmeans',
+                task_type=Task.TaskTypes.training
+                ) 
+        else:
+            self.task = task
 
     def run(self, _, features_scaled: np.ndarray) -> Dict[str, Any]:
         inertia = []
@@ -35,8 +49,26 @@ class KMeansClusterer:
         kmeans = KMeans(n_clusters=optimal_k, random_state=42)
         clusters = kmeans.fit_predict(features_scaled)
     
-
+    
         scores = calculate_clustering_scores(features_scaled, clusters)
+
+        # Log each score separately
+        for metric, score in scores.items():
+            self.task.logger.report_scalar(title="Clustering Score", series=metric, value=score, iteration=0)
+        
+        # Plot and log the clustering results
+        plot_kmeans(features_scaled, clusters, self.task)
+        
+        self.task.connect({"n_clusters": optimal_k})
+
+        # Log each score separately
+        for metric, score in scores.items():
+            self.task.logger.report_scalar(title="Clustering Score", series=metric, value=score, iteration=0)
+        
+        # Plot and log the clustering results
+        plot_kmeans(features_scaled, clusters, self.task)
+        
+        self.task.connect({"n_clusters": optimal_k})
         return {'scores': scores, 'optimal_k': optimal_k}
 
     @staticmethod
@@ -45,4 +77,9 @@ class KMeansClusterer:
         elbow_index = np.argmax(diffs) + 1
         return k_values[elbow_index]
     
-    
+    def close_task(self):
+        if hasattr(self, 'task'):
+            self.task.close()
+    def close_task(self):
+        if hasattr(self, 'task'):
+            self.task.close()

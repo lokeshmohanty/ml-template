@@ -16,10 +16,12 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from src.config import (
-    pytest,np,BATCH_SIZE
+    pytest,np,BATCH_SIZE, mock_task
 )
 from src.data.radar_synthetic import get_dataloader
 from src.model.gmm import GMMClusterer
+from tests.conftest import mock_task
+
 
 @pytest.fixture
 def dataloader():
@@ -48,18 +50,18 @@ def features_scaled(dataloader):
     all_data = np.concatenate(all_data, axis=0)
     return all_data
 
-def test_gmm_init():
+def test_gmm_init(mock_task):
     """
     Test the initialization of GMMClusterer.
 
     Ensures that the GMMClusterer instance has a 'max_components' attribute
     and that it's greater than 0.
     """
-    gmm = GMMClusterer()
+    gmm = GMMClusterer(task=mock_task)
     assert hasattr(gmm, 'max_components')
     assert gmm.max_components > 0
 
-def test_gmm_run(features_scaled):
+def test_gmm_run(features_scaled, mock_task):
     """
     Test the run method of GMMClusterer.
 
@@ -68,7 +70,7 @@ def test_gmm_run(features_scaled):
 
     Ensures that the run method returns a dictionary with expected keys and value types.
     """
-    gmm = GMMClusterer()
+    gmm = GMMClusterer(task=mock_task)
     results = gmm.run(None, features_scaled)
     
     assert 'scores' in results
