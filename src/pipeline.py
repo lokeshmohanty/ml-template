@@ -1,23 +1,21 @@
+from datetime import datetime, timedelta
+from typing import List
 
 import numpy as np
-import torch
-from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import KMeans
-from sklearn.mixture import GaussianMixture
-from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
-from sklearn.decomposition import PCA
-import matplotlib.pyplot as plt
-from clearml import Task, Logger
-from clearml.automation import PipelineDecorator
-from typing import List
 import pandas as pd
-from torch.utils.data import Dataset as TorchDataset, DataLoader
-from datetime import datetime, timedelta
+import torch
+from torch.utils.data import DataLoader
+from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans, AgglomerativeClustering, DBSCAN, OPTICS
+from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
+from sklearn.mixture import GaussianMixture
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import NearestNeighbors
 from scipy.optimize import linear_sum_assignment
 import hdbscan
+from clearml import Task
+from clearml.automation import PipelineDecorator
+
 from utils.scores import calculate_clustering_scores
 from utils.visualization import plot_clusters_3d
 
@@ -61,7 +59,7 @@ def preprocess_data(initial_dataframe, batch_size=32, shuffle=True):
     # Initial preprocessing
     dataset = torch.utils.data.TensorDataset(torch.tensor(initial_dataframe.values, dtype=torch.float32))
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=0)
-    
+
     all_data = []
     for batch in dataloader:
         all_data.append(batch[0].numpy())
@@ -92,7 +90,6 @@ def preprocess_data(initial_dataframe, batch_size=32, shuffle=True):
     print("Comprehensive data preprocessing completed successfully")
     return preprocessed_data.numpy()
 
-
 @PipelineDecorator.component(return_values=["model_name", "scores", "optimal_k"], cache=True, task_type=Task.TaskTypes.training)
 def kmeans(preprocessed_data):
     print("Training and evaluating KMeans model")
@@ -102,21 +99,21 @@ def kmeans(preprocessed_data):
     inertia = []
     silhouette_scores = []
     for k in range(2, max_clusters + 1):
-        kmeans = KMeans(n_clusters=k, random_state=42)
-        kmeans.fit(preprocessed_data)
-        inertia.append(kmeans.inertia_)
-        silhouette_scores.append(silhouette_score(preprocessed_data, kmeans.labels_))
+        kmeans_model = KMeans(n_clusters=k, random_state=42)
+        kmeans_model.fit(preprocessed_data)
+        inertia.append(kmeans_model.inertia_)
+        silhouette_scores.append(silhouette_score(preprocessed_data, kmeans_model.labels_))
     optimal_k = silhouette_scores.index(max(silhouette_scores)) + 2
-    kmeans = KMeans(n_clusters=optimal_k, random_state=42)
-    clusters = kmeans.fit_predict(preprocessed_data)
+    kmeans_model = KMeans(n_clusters=optimal_k, random_state=42)
+    clusters = kmeans_model.fit_predict(preprocessed_data)
     scores = calculate_clustering_scores(preprocessed_data, clusters)
-    plot_clusters_3d(preprocessed_data, clusters, 'KMeans Clustering with 3D PCA',task)
-    
+    plot_clusters_3d(preprocessed_data, clusters, 'KMeans Clustering with 3D PCA', task)
+
     for metric, score in scores.items():
         task.get_logger().report_scalar(title="KMeans Clustering Score", series=metric, value=score, iteration=0)
-    
+
     task.connect({"kmeans_optimal_k": optimal_k})
-    
+
     return "run_kmeans", scores, optimal_k
 
 @PipelineDecorator.component(return_values=["model_name", "scores", "optimal_k"], cache=True, task_type=Task.TaskTypes.training)
@@ -135,13 +132,13 @@ def agglomerative(preprocessed_data):
     labels = agg_clustering.fit_predict(preprocessed_data)
 
     scores = calculate_clustering_scores(preprocessed_data, labels)
-    plot_clusters_3d(preprocessed_data, labels, 'Agglomerative Clustering with 3D PCA',task)
-    
+    plot_clusters_3d(preprocessed_data, labels, 'Agglomerative Clustering with 3D PCA', task)
+
     for metric, score in scores.items():
         task.get_logger().report_scalar(title="Agglomerative Clustering Score", series=metric, value=score, iteration=0)
-    
+
     task.connect({"agglomerative_optimal_k": optimal_k})
-    
+
     return "run_agglomerative", scores, optimal_k
 
 @PipelineDecorator.component(return_values=["model_name", "scores", "eps", "min_samples"], cache=True, task_type=Task.TaskTypes.training)
@@ -159,33 +156,32 @@ def dbscan(preprocessed_data):
     eps = sorted_distances[knee_point]
     min_samples = k
 
-    dbscan = DBSCAN(eps=eps, min_samples=min_samples)
-    labels = dbscan.fit_predict(preprocessed_data)
+    dbscan_model = DBSCAN(eps=eps, min_samples=min_samples)
+    labels = dbscan_model.fit_predict(preprocessed_data)
 
     scores = calculate_clustering_scores(preprocessed_data, labels)
-    plot_clusters_3d(preprocessed_data, labels, 'DBSCAN Clustering with 3D PCA',task)
-    
+    plot_clusters_3d(preprocessed_data, labels, 'DBSCAN Clustering with 3D PCA', task)
+
     for metric, score in scores.items():
         task.get_logger().report_scalar(title="Dbscan Clustering Score", series=metric, value=score, iteration=0)
-    
-    task.connect({"eps": eps, "min_samples": min_samples})
-    
-    return "run_dbscan", scores, eps,min_samples
 
+    task.connect({"eps": eps, "min_samples": min_samples})
+
+    return "run_dbscan", scores, eps, min_samples
 
 @PipelineDecorator.component(return_values=["model_name", "scores", "optimal_k", "ensemble_type"], cache=True, task_type=Task.TaskTypes.training)
 def ensemble(preprocessed_data):
     print("Training and evaluating Ensemble Clustering model")
     def evaluate_clustering_models(features_scaled):
         results = []
-        for n_clusters in range(2, 3 + 1):
-            kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-            kmeans_labels = kmeans.fit_predict(features_scaled)
+        for n_clusters in range(2, 4):
+            kmeans_model = KMeans(n_clusters=n_clusters, random_state=42)
+            kmeans_labels = kmeans_model.fit_predict(features_scaled)
             kmeans_silhouette = silhouette_score(features_scaled, kmeans_labels)
 
-            gmm = GaussianMixture(n_components=n_clusters, random_state=42)
-            gmm.fit(features_scaled)
-            gmm_labels = gmm.predict(features_scaled)
+            gmm_model = GaussianMixture(n_components=n_clusters, random_state=42)
+            gmm_model.fit(features_scaled)
+            gmm_labels = gmm_model.predict(features_scaled)
             gmm_silhouette = silhouette_score(features_scaled, gmm_labels)
 
             results.append((n_clusters, kmeans_silhouette, gmm_silhouette))
@@ -193,23 +189,23 @@ def ensemble(preprocessed_data):
         return pd.DataFrame(results, columns=['n_clusters', 'kmeans_silhouette', 'gmm_silhouette'])
 
     def soft_voting_ensemble(features_scaled, n_clusters):
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-        kmeans_labels = kmeans.fit_predict(features_scaled)
+        kmeans_model = KMeans(n_clusters=n_clusters, random_state=42)
+        kmeans_labels = kmeans_model.fit_predict(features_scaled)
 
-        gmm = GaussianMixture(n_components=n_clusters, random_state=42)
-        gmm.fit(features_scaled)
-        gmm_labels = gmm.predict(features_scaled)
+        gmm_model = GaussianMixture(n_components=n_clusters, random_state=42)
+        gmm_model.fit(features_scaled)
+        gmm_labels = gmm_model.predict(features_scaled)
 
         ensemble_labels = np.round((kmeans_labels + gmm_labels) / 2).astype(int)
         return ensemble_labels
 
     def majority_voting_ensemble(features_scaled, n_clusters):
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
-        kmeans_labels = kmeans.fit_predict(features_scaled)
+        kmeans_model = KMeans(n_clusters=n_clusters, random_state=42)
+        kmeans_labels = kmeans_model.fit_predict(features_scaled)
 
-        gmm = GaussianMixture(n_components=n_clusters, random_state=42)
-        gmm.fit(features_scaled)
-        gmm_labels = gmm.predict(features_scaled)
+        gmm_model = GaussianMixture(n_components=n_clusters, random_state=42)
+        gmm_model.fit(features_scaled)
+        gmm_labels = gmm_model.predict(features_scaled)
 
         gmm_labels_aligned = align_clusters(kmeans_labels, gmm_labels)
         ensemble_labels = np.where(kmeans_labels == gmm_labels_aligned, kmeans_labels, -1)
@@ -217,13 +213,13 @@ def ensemble(preprocessed_data):
         return ensemble_labels
 
     def stacking_ensemble(features_scaled, n_clusters, n_init=10):
-        kmeans = KMeans(n_clusters=n_clusters, n_init=n_init, random_state=42)
-        kmeans_labels = kmeans.fit_predict(features_scaled)
-        kmeans_distances = kmeans.transform(features_scaled)
+        kmeans_model = KMeans(n_clusters=n_clusters, n_init=n_init, random_state=42)
+        kmeans_labels = kmeans_model.fit_predict(features_scaled)
+        kmeans_distances = kmeans_model.transform(features_scaled)
 
-        gmm = GaussianMixture(n_components=n_clusters, n_init=n_init, random_state=42)
-        gmm.fit(features_scaled)
-        gmm_proba = gmm.predict_proba(features_scaled)
+        gmm_model = GaussianMixture(n_components=n_clusters, n_init=n_init, random_state=42)
+        gmm_model.fit(features_scaled)
+        gmm_proba = gmm_model.predict_proba(features_scaled)
 
         meta_features = np.hstack([kmeans_distances, gmm_proba])
         meta_clf = RandomForestClassifier(n_estimators=100, random_state=42)
@@ -261,13 +257,13 @@ def ensemble(preprocessed_data):
     best_labels = ensemble_labels[best_method_index]
 
     scores = calculate_clustering_scores(preprocessed_data, best_labels)
-    plot_clusters_3d(preprocessed_data, best_labels, 'Ensemble Clustering with 3D PCA',task)
-    
+    plot_clusters_3d(preprocessed_data, best_labels, 'Ensemble Clustering with 3D PCA', task)
+
     for metric, score in scores.items():
         task.get_logger().report_scalar(title="Ensemble Clustering Score", series=metric, value=score, iteration=0)
-    
+
     task.connect({"ensemble_optimal_k": optimal_n, "ensemble_type": best_method_index + 1})
-    
+
     return "run_ensemble", scores, optimal_n, best_method_index + 1
 
 @PipelineDecorator.component(return_values=["model_name", "scores", "parameters"], cache=True, task_type=Task.TaskTypes.training)
@@ -277,26 +273,26 @@ def optics(preprocessed_data):
     min_samples = max(5, int(0.1 * len(preprocessed_data)))
     min_cluster_size = max(5, int(0.05 * len(preprocessed_data)))
 
-    optics = OPTICS(min_samples=min_samples, xi=0.05, min_cluster_size=min_cluster_size)
-    labels = optics.fit_predict(preprocessed_data)
+    optics_model = OPTICS(min_samples=min_samples, xi=0.05, min_cluster_size=min_cluster_size)
+    labels = optics_model.fit_predict(preprocessed_data)
 
     scores = calculate_clustering_scores(preprocessed_data, labels)
-    plot_clusters_3d(preprocessed_data, labels, 'OPTICS Clustering with 3D PCA',task)
-    
+    plot_clusters_3d(preprocessed_data, labels, 'OPTICS Clustering with 3D PCA', task)
+
     for metric, score in scores.items():
         task.get_logger().report_scalar(title="OPTICS Clustering Score", series=metric, value=score, iteration=0)
-    
+
     parameters = {
         'min_samples': min_samples,
         'xi': 0.05,
         'min_cluster_size': min_cluster_size
     }
     task.connect(parameters)
-    
+
     return "run_optics", scores, parameters
 
 @PipelineDecorator.component(return_values=["model_name", "scores", "parameters"], cache=True, task_type=Task.TaskTypes.training)
-def Hdbscan_Clustering(preprocessed_data):
+def hdbscan_clustering(preprocessed_data):
     print("Training and evaluating HDBSCAN model")
 
     task = Task.current_task()
@@ -307,17 +303,17 @@ def Hdbscan_Clustering(preprocessed_data):
     labels = clusterer.fit_predict(preprocessed_data)
 
     scores = calculate_clustering_scores(preprocessed_data, labels)
-    plot_clusters_3d(preprocessed_data, labels, 'HDBSCAN Clustering with 3D PCA',task)
-    
+    plot_clusters_3d(preprocessed_data, labels, 'HDBSCAN Clustering with 3D PCA', task)
+
     for metric, score in scores.items():
         task.get_logger().report_scalar(title="HDBSCAN Clustering Score", series=metric, value=score, iteration=0)
-    
+
     parameters = {
         'min_cluster_size': min_cluster_size,
         'min_samples': min_samples
     }
     task.connect(parameters)
-    
+
     return "run_hdbscan", scores, parameters
 
 @PipelineDecorator.component(return_values=["model_name", "scores", "parameters"], cache=True, task_type=Task.TaskTypes.training)
@@ -328,28 +324,28 @@ def gmm(preprocessed_data):
     silhouette_scores = []
     bic_scores = []
     for k in range(2, max_components + 1):
-        gmm = GaussianMixture(n_components=k, random_state=42)
-        gmm.fit(preprocessed_data)
-        labels = gmm.predict(preprocessed_data)
+        gmm_model = GaussianMixture(n_components=k, random_state=42)
+        gmm_model.fit(preprocessed_data)
+        labels = gmm_model.predict(preprocessed_data)
         silhouette_scores.append(silhouette_score(preprocessed_data, labels))
-        bic_scores.append(gmm.bic(preprocessed_data))
+        bic_scores.append(gmm_model.bic(preprocessed_data))
     optimal_k = silhouette_scores.index(max(silhouette_scores)) + 2
-    gmm = GaussianMixture(n_components=optimal_k, random_state=42)
-    gmm.fit(preprocessed_data)
-    labels = gmm.predict(preprocessed_data)
+    gmm_model = GaussianMixture(n_components=optimal_k, random_state=42)
+    gmm_model.fit(preprocessed_data)
+    labels = gmm_model.predict(preprocessed_data)
     scores = calculate_clustering_scores(preprocessed_data, labels)
-    plot_clusters_3d(preprocessed_data, labels, 'Gaussian Mixture Model Clustering with 3D PCA',task)
-    for (metric, score) in scores.items():
+    plot_clusters_3d(preprocessed_data, labels, 'Gaussian Mixture Model Clustering with 3D PCA', task)
+    for metric, score in scores.items():
         task.get_logger().report_scalar(title='GMM Clustering Score', series=metric, value=score, iteration=0)
     task.connect({'gmm_optimal_k': optimal_k})
-    return ('run_gmm', scores, optimal_k)
+    return 'run_gmm', scores, optimal_k
 
 @PipelineDecorator.pipeline(name="Radar Analysis Pipeline", project="CAESAR", version="1.0.0")
 def execute_pipeline():
     print("Starting Radar Analysis Pipeline")
     initial_dataframe = synthetic_data()
     preprocessed_data = preprocess_data(initial_dataframe)
-    
+
     # Execute all clustering models
     kmeans_results = kmeans(preprocessed_data)
     gmm_results = gmm(preprocessed_data)
@@ -357,8 +353,8 @@ def execute_pipeline():
     dbscan_results = dbscan(preprocessed_data)
     ensemble_results = ensemble(preprocessed_data)
     optics_results = optics(preprocessed_data)
-    hdbscan_results = Hdbscan_Clustering(preprocessed_data)
-    
+    hdbscan_results = hdbscan_clustering(preprocessed_data)
+
     results = {
         kmeans_results[0]: {"scores": kmeans_results[1], "optimal_k": kmeans_results[2]},
         gmm_results[0]: {"scores": gmm_results[1], "optimal_k": gmm_results[2]},
@@ -368,7 +364,7 @@ def execute_pipeline():
         optics_results[0]: {"scores": optics_results[1], "parameters": optics_results[2]},
         hdbscan_results[0]: {"scores": hdbscan_results[1], "parameters": hdbscan_results[2]}
     }
-    
+
     print("Model evaluation scores:")
     for model_name, result in results.items():
         print(f"{model_name}:")
@@ -383,7 +379,7 @@ def execute_pipeline():
             print(f"  Parameters: {result['parameters']}")
         print(f"  Scores: {result['scores']}")
         print()
-    
+
     return results
 
 if __name__ == "__main__":
@@ -393,4 +389,4 @@ if __name__ == "__main__":
         print("Process completed")
         print("Final results:", results)
     except Exception as e:
-        print(f"An error occurred: {str(e)}") 
+        print(f"An error occurred: {str(e)}")

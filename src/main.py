@@ -1,31 +1,10 @@
 import sys
 import os
 import argparse
-from typing import Dict, Any, Tuple
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
-# from src.config import (
-#     torch, pd, DataLoader, StandardScaler, BATCH_SIZE, 
-#     StepLR, optim, load_and_split_data, print_class_distribution
-# )
-# from src.model.kmeans import KMeansClusterer
-# from src.model.dbscan import DBSCANClusterer
-# from src.model.gmm import GMMClusterer
-# from src.model.ensemble import EnsembleClusterer
-# from src.model.agglomerative import AgglomerativeClusterer
-# from src.model.optics import OPTICSClusterer
-# from src.model.hdbscan_clusterer import HDBSCANClusterer
-# from src.data.radar_synthetic import get_dataloader
-# from src.model.siamese import SiameseNetwork
 
-import sys
-import os
-import argparse
-from typing import Dict, Any, Tuple
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
-from config import (
-    torch, pd, DataLoader, StandardScaler, BATCH_SIZE
-    # StepLR, optim, load_and_split_data, print_class_distribution
-)
+
+from config import torch, StandardScaler, BATCH_SIZE
 from model.kmeans import KMeansClusterer
 from model.dbscan import DBSCANClusterer
 from model.gmm import GMMClusterer
@@ -35,6 +14,7 @@ from model.optics import OPTICSClusterer
 from model.hdbscan_clusterer import HDBSCANClusterer
 from data.radar_synthetic import get_dataloader
 from model.siamese import SiameseNetwork
+
 def run_selected_model(args):
     model_classes = {
         'kmeans': KMeansClusterer,
@@ -44,7 +24,7 @@ def run_selected_model(args):
         'agglomerative': AgglomerativeClusterer,
         'optics': OPTICSClusterer,
         'hdbscan': HDBSCANClusterer,
-        'siamese': SiameseNetwork  
+        'siamese': SiameseNetwork
     }
 
     model_class = model_classes.get(args.model)
@@ -53,20 +33,20 @@ def run_selected_model(args):
 
     model = model_class()
     dataloader = get_dataloader(batch_size=BATCH_SIZE, shuffle=True)
-    
+
     all_data = []
     for batch in dataloader:
         if isinstance(batch, dict) and 'data' in batch:
             all_data.append(batch['data'])
         else:
             all_data.append(batch)
-    
-    features = torch.cat(all_data, dim=0).numpy()  
-    features_scaled = StandardScaler().fit_transform(features) 
-    
+
+    features = torch.cat(all_data, dim=0).numpy()
+    features_scaled = StandardScaler().fit_transform(features)
+
     results = model.run(None, features_scaled)
     print(results)
-    
+
     if hasattr(model, 'close_task'):
         model.close_task()
 
@@ -88,15 +68,14 @@ def main():
                         help='random seed (default: 1)')
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
-    parser.add_argument('--model', type=str, 
-                        choices=['kmeans', 'dbscan', 'gmm', 'ensemble', 'agglomerative', 'optics', 'hdbscan', 'siamese'], 
+    parser.add_argument('--model', type=str,
+                        choices=['kmeans', 'dbscan', 'gmm', 'ensemble', 'agglomerative', 'optics', 'hdbscan', 'siamese'],
                         required=True,
                         help='Choose the model to run')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='how many batches to wait before logging training status')
     parser.add_argument('--num-classes', type=int, default=2, metavar='N',
                         help='number of classes for classification (default: 2)')
-    
     parser.add_argument('--dry-run', action='store_true', default=False,
                         help='quickly check a single pass')
 
@@ -105,4 +84,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

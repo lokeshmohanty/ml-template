@@ -1,5 +1,9 @@
-from config import *
-
+import numpy as np
+import torch
+from tqdm import tqdm
+import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
+from umap import UMAP
 
 def get_embeddings(model, dataloader, device):
     model.eval()
@@ -40,9 +44,6 @@ def visualize_embeddings(embeddings, labels, title, save_path=None):
         plt.close()
     else:
         plt.show()
-
-
-
 
 def visualize_embeddings_umap(embeddings, labels, title):
     n_samples = min(len(embeddings), len(labels))

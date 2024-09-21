@@ -1,8 +1,9 @@
-from torch import nn
 import torch
+from torch import nn
 import torch.nn.functional as F
 from torchvision.models import resnet101, ResNet101_Weights
 from torch.nn import TripletMarginLoss
+
 class SiameseNetwork(nn.Module):
     """
     Defines the Siamese Neural Network Class
@@ -81,8 +82,8 @@ class SiameseNetwork(nn.Module):
                 classification_loss = classification_criterion(anchor_class, labels)
                 test_loss += triplet_loss.item() + classification_loss.item()
 
-                dist_positive = torch.nn.functional.pairwise_distance(anchor_out, positive_out)
-                dist_negative = torch.nn.functional.pairwise_distance(anchor_out, negative_out)
+                dist_positive = F.pairwise_distance(anchor_out, positive_out)
+                dist_negative = F.pairwise_distance(anchor_out, negative_out)
                 triplet_correct += (dist_positive < dist_negative).sum().item()
                 classification_correct += (anchor_class.argmax(1) == labels).sum().item()
                 total_samples += labels.size(0)
@@ -95,4 +96,3 @@ class SiameseNetwork(nn.Module):
         print(f'Triplet Accuracy: {triplet_correct}/{total_samples} ({triplet_accuracy:.2f}%)')
         print(f'Classification Accuracy: {classification_correct}/{total_samples} '
               f'({classification_accuracy:.2f}%)\n')
-        

@@ -14,73 +14,48 @@ Imports:
 """
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
 from src.config import (
-    np,pytest,BATCH_SIZE, mock_task
+    np,pytest,BATCH_SIZE
 )
 from src.data.radar_synthetic import get_dataloader
 from src.model.hdbscan_clusterer import HDBSCANClusterer
 from tests.conftest import mock_task
-
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 @pytest.fixture
 def dataloader():
-    """
-    Pytest fixture to create a DataLoader for test data.
-
-    Returns:
-        DataLoader: A DataLoader instance with synthetic radar data.
-    """
+    """Create a DataLoader for test data."""
     return get_dataloader(batch_size=BATCH_SIZE, shuffle=True)
 
 @pytest.fixture
 def features_scaled(dataloader):
-    """
-    Pytest fixture to prepare scaled feature data for clustering.
-
-    Args:
-        dataloader: The DataLoader fixture.
-
-    Returns:
-        np.ndarray: Concatenated and scaled feature data.
-    """
+    """Prepare scaled feature data for clustering."""
     all_data = []
     for batch in dataloader:
         all_data.append(batch)
-    all_data = np.concatenate(all_data, axis=0)
-    return all_data
+    return np.concatenate(all_data, axis=0)
 
 def test_hdbscan_init(mock_task):
-    """
-    Test the initialization of HDBSCANClusterer.
-
-    Ensures that the HDBSCANClusterer instance has a 'run' method.
-    """
+    """Test the initialization of HDBSCANClusterer."""
     hdbscan = HDBSCANClusterer(task=mock_task)
     assert hasattr(hdbscan, 'run')
 
 def test_hdbscan_run(features_scaled, mock_task):
-    """
-    Test the run method of HDBSCANClusterer.
-
-    Args:
-        features_scaled: The features_scaled fixture.
-
-    Ensures that the run method returns a dictionary with expected keys and value types.
-    """
+    """Test the run method of HDBSCANClusterer."""
     hdbscan = HDBSCANClusterer(task=mock_task)
     results = hdbscan.run(None, features_scaled)
-    
+
     assert 'scores' in results
     assert isinstance(results['scores'], dict)
     assert 'Silhouette Score' in results['scores']
     assert 'Calinski-Harabasz Index' in results['scores']
     assert 'Davies-Bouldin Index' in results['scores']
-    
+
     assert 'labels' in results
     assert isinstance(results['labels'], np.ndarray)
     assert len(results['labels']) == len(features_scaled)
-    
+
     assert 'parameters' in results
     assert isinstance(results['parameters'], dict)
     assert 'min_cluster_size' in results['parameters']

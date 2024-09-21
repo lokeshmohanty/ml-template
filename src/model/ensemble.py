@@ -11,12 +11,12 @@ Imports:
 """
 from clearml import Task
 from typing import Dict, Any
-from config import (
+from src.config import (
     np, pd, KMeans, GaussianMixture, RandomForestClassifier,
     silhouette_score, linear_sum_assignment, MAX_CLUSTERS
 )
-from utils.scores import calculate_clustering_scores
-from utils.visualization import plot_ensemble
+from src.utils.scores import calculate_clustering_scores
+from src.utils.visualization import plot_ensemble
 
 class EnsembleClusterer:
     """

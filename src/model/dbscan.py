@@ -9,14 +9,17 @@ Imports:
     - NumPy, NearestNeighbors, DBSCAN, K_NEIGHBORS, and plt from src.config
     - calculate_clustering_scores from src.utils.scores
 """
-from clearml import Task
 from typing import Dict, Any
-from config import (
+from clearml import Task
+from src.config import (
     np, NearestNeighbors, DBSCAN, K_NEIGHBORS, plt
 )
-from utils.scores import calculate_clustering_scores
-from utils.visualization import plot_dbscan
+from src.utils.scores import calculate_clustering_scores
+from src.utils.visualization import plot_dbscan
+
 class DBSCANClusterer:
+    """DBSCAN clustering implementation."""
+
     def __init__(self, task=None):
         self.k = K_NEIGHBORS
         if task is None:
@@ -24,7 +27,7 @@ class DBSCANClusterer:
                 project_name='CAESAR',
                 task_name='dbscan',
                 task_type=Task.TaskTypes.training
-                ) 
+            )
         else:
             self.task = task
 
@@ -44,10 +47,10 @@ class DBSCANClusterer:
         scores = calculate_clustering_scores(features_scaled, clusters)
         for metric, score in scores.items():
             self.task.logger.report_scalar(title="Clustering Score", series=metric, value=score, iteration=0)
-        
+
         # Plot and log the clustering results
         plot_dbscan(features_scaled, clusters, self.task)
-        
+
         self.task.connect({"eps": eps, "min_samples": min_samples})
 
         return {
@@ -61,7 +64,7 @@ class DBSCANClusterer:
         diffs = np.diff(distances)
         knee_point = np.argmax(diffs) + 1
         return knee_point
-    
+
     def close_task(self):
         if hasattr(self, 'task'):
             self.task.close()

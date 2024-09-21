@@ -2,8 +2,6 @@ import torch
 from torch import nn
 from src.model.siamese import SiameseNetwork
 
-# You don't need to redefine the fixtures here if they're in a conftest.py file in the root directory
-
 def test_model_initialization(model):
     assert isinstance(model, SiameseNetwork)
     assert isinstance(model.resnet, nn.Sequential)
@@ -33,7 +31,7 @@ def test_embedding_normalization(model, anchor):
     norm = torch.norm(anchor_out, p=2, dim=1)
     assert torch.allclose(norm, torch.ones_like(norm), atol=1e-6)
 
-def test_classification_output(model, anchor, labels):
+def test_classification_output(model, anchor):
     _, _, _, anchor_class = model(anchor, anchor, anchor)  # Using anchor for all inputs
 
     assert anchor_class.shape[1] == 10  # Assuming num_classes=10
