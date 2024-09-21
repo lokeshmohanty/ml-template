@@ -590,12 +590,12 @@ files = [
 
 [[package]]
 name = "clearml"
-version = "1.16.2"
+version = "1.16.4"
 description = "ClearML - Auto-Magical Experiment Manager, Version Control, and MLOps for AI"
 optional = false
 python-versions = "*"
 files = [
-    {file = "clearml-1.16.2-py2.py3-none-any.whl", hash = "sha256:b78f1f12d6dd23a5b81f07fa0f0526e16713ca9ec1d164c96fdd11540e90d782"},
+    {file = "clearml-1.16.4-py2.py3-none-any.whl", hash = "sha256:98c6d63ae017e9dd6787e683041c94de19bfb6d1645cfc3a8d561f3ce827d2e8"},
 ]
 
 [package.dependencies]

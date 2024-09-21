@@ -1,6 +1,8 @@
-# References:
-## build model: https://pytorch.org/tutorials/beginner/basics/buildmodel_tutorial.html
-## save/load: https://pytorch.org/tutorials/beginner/basics/saveloadrun_tutorial.html
+"""
+References:
+build model: https://pytorch.org/tutorials/beginner/basics/buildmodel_tutorial.html
+save/load: https://pytorch.org/tutorials/beginner/basics/saveloadrun_tutorial.html
+"""
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -14,8 +16,8 @@ from src.data.fmnist import FMNIST
 
 app = typer.Typer()
 
-
 class Linear(nn.Module):
+    """Linear model class"""
     def __init__(self, input_size, output_size):
         super().__init__()
         self.linear = nn.Linear(input_size, output_size)
@@ -23,8 +25,8 @@ class Linear(nn.Module):
     def forward(self, x):
         return self.linear(x)
 
-
 def train_epoch(dataloader, model, loss_fn, optimizer):
+    """Train for one epoch"""
     size = len(dataloader.dataset)
     model.train()
     for batch, (features, target) in enumerate(dataloader):
@@ -41,10 +43,10 @@ def train_epoch(dataloader, model, loss_fn, optimizer):
             loss, current = loss.item(), (batch + 1) * len(features)
             print(f"loss: {loss:>7f} [{current:>5d}/{size:>5d}]")
 
-
 def test_epoch(dataloader, model, loss_fn):
+    """Test for one epoch"""
     size = len(dataloader.dataset)
-    n_batches = len(dataloader)
+    num_batches = len(dataloader)
     model.eval()
     test_loss, correct = 0, 0
     with torch.no_grad():
@@ -54,14 +56,13 @@ def test_epoch(dataloader, model, loss_fn):
             pred = model(features)
             test_loss += loss_fn(pred, target).item()
             correct += (pred.argmax(1) == target).type(torch.float).sum().item()
-            test_loss /= num_batches
-            correct /= size
-
-            print(
-                f"Test Error: \nAccuracy: {(100 * correct):>0.1f}%",
-                "Avg loss: {test_loss:>8f} \n",
-            )
-
+    
+    test_loss /= num_batches
+    correct /= size
+    print(
+        f"Test Error: \nAccuracy: {(100 * correct):>0.1f}%",
+        f"Avg loss: {test_loss:>8f} \n",
+    )
 
 # ============================= Main ==================================
 
@@ -78,21 +79,20 @@ model = Linear(data_train.sizes["input"], data_train.sizes["output"]).to(DEVICE)
 optimizer = optim.SGD(model.parameters(), lr=1e-2, momentum=0.9)
 loss_fn = nn.functional.mse_loss
 
-
 @app.command()
 def train():
-    for _ in track(range(epochs)):
+    """Train the model"""
+    for _ in track(range(EPOCHS)):
         train_epoch(loader_train, model, loss_fn, optimizer)
-        test_epoch(test_dataloader, model, loss_fn)
+        test_epoch(loader_test, model, loss_fn)
 
     torch.save(model.state_dict(), SAVED_MODEL)
 
-
 @app.command()
-def evalualte():
+def evaluate():
+    """Evaluate the model"""
     model.load_state_dict(torch.load(SAVED_MODEL))
     model.eval()
-
 
 if __name__ == "__main__":
     app()

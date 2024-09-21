@@ -7,9 +7,8 @@ Functions:
     calculate_clustering_scores: Calculates multiple clustering performance scores.
 """
 from typing import Dict
-from src.config import ( 
-    np, silhouette_score, calinski_harabasz_score, davies_bouldin_score 
-)
+import numpy as np
+from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
 
 def calculate_clustering_scores(features_scaled: np.ndarray, labels: np.ndarray) -> Dict[str, float]:
     """

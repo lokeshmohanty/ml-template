@@ -14,12 +14,13 @@ Imports:
 """
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from src.config import (
     np,pytest,BATCH_SIZE
 )
 from src.data.radar_synthetic import get_dataloader
 from src.model.dbscan import DBSCANClusterer
+from tests.conftest import mock_task
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 @pytest.fixture
 def dataloader():
@@ -45,53 +46,36 @@ def features_scaled(dataloader):
     all_data = []
     for batch in dataloader:
         all_data.append(batch)
-    all_data = np.concatenate(all_data, axis=0)
-    return all_data
+    return np.concatenate(all_data, axis=0)
 
-def test_dbscan_init():
-    """
-    Test the initialization of DBSCANClusterer.
-
-    Ensures that the DBSCANClusterer instance has a 'k' attribute
-    and that it's greater than 0.
-    """
-    dbscan = DBSCANClusterer()
+def test_dbscan_init(mock_task):
+    """Test the initialization of DBSCANClusterer."""
+    dbscan = DBSCANClusterer(task=mock_task)
     assert hasattr(dbscan, 'k')
     assert dbscan.k > 0
 
-def test_dbscan_run(features_scaled):
-    """
-    Test the run method of DBSCANClusterer.
-
-    Args:
-        features_scaled: The features_scaled fixture.
-
-    Ensures that the run method returns a dictionary with expected keys and value types.
-    """
-    dbscan = DBSCANClusterer()
+def test_dbscan_run(features_scaled, mock_task):
+    """Test the run method of DBSCANClusterer."""
+    dbscan = DBSCANClusterer(task=mock_task)
     results = dbscan.run(None, features_scaled)
-    
+
     assert 'scores' in results
     assert isinstance(results['scores'], dict)
     assert 'Silhouette Score' in results['scores']
     assert 'Calinski-Harabasz Index' in results['scores']
     assert 'Davies-Bouldin Index' in results['scores']
-    
+
     assert 'eps' in results
     assert isinstance(results['eps'], float)
     assert results['eps'] > 0
-    
+
     assert 'min_samples' in results
     assert isinstance(results['min_samples'], int)
     assert results['min_samples'] > 0
 
-def test_dbscan_find_knee_point():
-    """
-    Test the find_knee_point method of DBSCANClusterer.
-
-    Ensures that the method correctly identifies the knee point in a simple array.
-    """
-    dbscan = DBSCANClusterer()
+def test_dbscan_find_knee_point(mock_task):
+    """Test the find_knee_point method of DBSCANClusterer."""
+    dbscan = DBSCANClusterer(task=mock_task)
     distances = np.array([1, 2, 3, 4, 10, 11, 12])
     knee_point = dbscan.find_knee_point(distances)
     assert knee_point == 4

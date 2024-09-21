@@ -1,21 +1,8 @@
-"""
-Test module for the synthetic radar data generator and loader.
-
-This module contains unit tests for the RadarDataset class and get_dataloader function
-from the src.data.radar_synthetic module.
-
-The tests ensure that the synthetic data generation and loading processes work as expected.
-Imports:
-    - sys, os: For modifying Python path
-    - torch, pytest from src.config: For PyTorch operations and pytest framework
-    - RadarDataset, get_dataloader from src.data.radar_synthetic: Classes and functions being tested
-"""
 import sys
 import os
+import torch
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-from src.config import (
-    torch,pytest
-)
 from src.data.radar_synthetic import RadarDataset, get_dataloader
 
 def test_radar_dataset():
@@ -42,7 +29,7 @@ def test_get_dataloader():
     """
     dataloader = get_dataloader()
     assert isinstance(dataloader, torch.utils.data.DataLoader)
-    
+
     batch = next(iter(dataloader))
     assert isinstance(batch, torch.Tensor)
     assert batch.dim() == 2
@@ -68,8 +55,8 @@ def test_dataloader_shuffle():
     """
     dataloader1 = get_dataloader(shuffle=True)
     dataloader2 = get_dataloader(shuffle=True)
-    
+
     batch1 = next(iter(dataloader1))
     batch2 = next(iter(dataloader2))
-    
+
     assert not torch.all(torch.eq(batch1, batch2))
