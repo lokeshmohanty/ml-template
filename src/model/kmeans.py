@@ -16,8 +16,7 @@ from src.config import (
 )
 from src.utils.scores import calculate_clustering_scores
 from src.utils.visualization import plot_kmeans
-
-MAX_CLUSTERS = 10  # Define this constant if not imported from config
+MAX_CLUSTERS = 6
 
 class KMeansClusterer:
     """KMeans clustering implementation."""

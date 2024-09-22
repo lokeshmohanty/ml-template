@@ -45,6 +45,11 @@ from sklearn.model_selection import train_test_split
 # Scipy imports
 from scipy.optimize import linear_sum_assignment
 
+# Project-specific imports
+from src.data.deepsig_data import RadioSignalDataset, load_and_split_data, print_class_distribution
+from src.utils.visualisation.visualisation import get_embeddings, visualize_embeddings, visualize_embeddings_umap
+from src.model.siamese import SiameseNetwork
+
 # Constants
 MAX_CLUSTERS = 10
 MAX_COMPONENTS = 10
@@ -66,7 +71,6 @@ def mock_task():
     mock.connect = MagicMock()
     return mock
 
-# Make all imported modules and functions available
 __all__ = [
     'np', 'pd', 'plt', 'Axes3D', 'torch', 'nn', 'F', 'optim', 'Dataset', 'DataLoader',
     'StepLR', 'torchvision', 'datasets', 'transforms', 'tqdm', 'h5py', 'pytest',
@@ -75,7 +79,10 @@ __all__ = [
     'RandomForestClassifier', 'NearestNeighbors', 'train_test_split',
     'linear_sum_assignment', 'hdbscan', 'resnet101', 'ResNet101_Weights',
     'TripletMarginLoss', 'TripletMarginWithDistanceLoss',
+    'RadioSignalDataset', 'load_and_split_data', 'print_class_distribution',
+    'get_embeddings', 'visualize_embeddings', 'visualize_embeddings_umap',
+    'SiameseNetwork',
     'Any', 'Dict', 'List', 'Tuple', 'datetime', 'timedelta', 'argparse', 'random', 'sys', 'os',
     'MAX_CLUSTERS', 'MAX_COMPONENTS', 'BATCH_SIZE', 'RANDOM_STATE', 'K_NEIGHBORS',
-    'MIN_CLUSTER_SIZE_FACTOR', 'MIN_SAMPLES_FACTOR', 'XI', 'h5py'
+    'MIN_CLUSTER_SIZE_FACTOR', 'MIN_SAMPLES_FACTOR', 'XI','h5py'
 ]

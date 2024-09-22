@@ -13,51 +13,60 @@ Functions:
     plot_optics: Plots OPTICS clustering results.
     plot_hdbscan: Plots HDBSCAN clustering results.
 """
-
-from typing import List
+from typing import List,Optional, Tuple
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.colors as mcolors
 from sklearn.decomposition import PCA
-from clearml import Task
+from clearml import Task, Logger
 
-def plot_clusters_3d(features_scaled: np.ndarray, labels: np.ndarray, title: str, task: Task):
-    # Initialize PCA and transform features
+def plot_clusters_3d(features_scaled: np.ndarray, labels: np.ndarray, title: str, task: Optional[Task] = None) -> Tuple[np.ndarray, np.ndarray]:
     pca = PCA(n_components=3)
     pca_result = pca.fit_transform(features_scaled)
     
-    # Fetch the logger from the task
-    logger = task.get_logger()
-
-    # Create figure for the scatter plot
+    unique_labels = np.unique(labels)
+    
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
-    scatter = ax.scatter(pca_result[:, 0], pca_result[:, 1], pca_result[:, 2],
-                         c=labels, cmap='viridis', alpha=0.6, edgecolors='w', s=50)
     
-    ax.set_title(title)
+    color_map = plt.colormaps['rainbow']
+    norm = mcolors.Normalize(vmin=min(unique_labels), vmax=max(unique_labels))
+    
+    for label in unique_labels:
+        if label == -1:
+            color = 'k'  # Black color for noise
+        else:
+            color = color_map(norm(label))
+        
+        mask = (labels == label)
+        ax.scatter(pca_result[mask, 0], pca_result[mask, 1], pca_result[mask, 2],
+                   c=[color], label=f'Cluster {label}')
+    
     ax.set_xlabel('PCA Component 1')
     ax.set_ylabel('PCA Component 2')
     ax.set_zlabel('PCA Component 3')
-    plt.colorbar(scatter, label='Cluster label')
-
-    # Close the plot to save resources
-    plt.close()
-
-    # Prepare data for ClearML logging
-    scatter_data = pca_result.tolist()
-    label_list = [str(label) for label in labels]
-
-    # Log the 3D scatter plot
-    logger.report_scatter3d(
-        title=title,
-        series='3D PCA Clusters',
-        iteration=0,
-        scatter=scatter_data,
-        labels=label_list,
-        xaxis='PCA Component 1',
-        yaxis='PCA Component 2',
-        zaxis='PCA Component 3'
-    )
+    ax.legend()
+    ax.set_title(title)
+    
+    if task:
+        try:
+            logger = task.get_logger()
+            if logger:
+                logger.report_matplotlib_figure(title=title, series="Clusters", iteration=0, figure=fig)
+                
+                # Report cluster sizes
+                for label in unique_labels:
+                    count = np.sum(labels == label)
+                    logger.report_scalar(title="Cluster Sizes", series=f"Cluster {label}", value=count, iteration=0)
+            else:
+                print("Warning: Logger not available. Skipping ClearML logging.")
+        except Exception as e:
+            print(f"Warning: Error in ClearML logging - {str(e)}. Skipping ClearML logging.")
+    
+    plt.close(fig)
+    
+    return pca_result, unique_labels
 
 def plot_kmeans(features_scaled: np.ndarray, labels: np.ndarray, task: Task):
     """Plot KMeans clustering results."""

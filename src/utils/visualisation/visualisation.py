@@ -3,7 +3,8 @@ import torch
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
-from umap import UMAP
+# from umap import UMAP
+from umap.umap_ import UMAP
 
 def get_embeddings(model, dataloader, device):
     model.eval()

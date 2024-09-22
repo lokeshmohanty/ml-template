@@ -44,6 +44,10 @@ def test_agglomerative_init(mock_task):
 def test_agglomerative_run(features_scaled, mock_task):
     """Test the run method of AgglomerativeClusterer."""
     agglomerative = AgglomerativeClusterer(task=mock_task)
+    
+    # Mock the get_logger method
+    mock_task.get_logger.return_value = None
+    
     results = agglomerative.run(None, features_scaled)
 
     assert 'scores' in results
