@@ -47,6 +47,8 @@ def test_kmeans_run(features_scaled, mock_task):
     """Test the run method of KMeansClusterer."""
     kmeans = KMeansClusterer(task=mock_task)
     results = kmeans.run(None, features_scaled)
+     # Mock the get_logger method
+    mock_task.get_logger.return_value = None
 
     assert 'scores' in results
     assert isinstance(results['scores'], dict)

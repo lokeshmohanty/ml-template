@@ -47,6 +47,8 @@ def test_gmm_run(features_scaled, mock_task):
     """Test the run method of GMMClusterer."""
     gmm = GMMClusterer(task=mock_task)
     results = gmm.run(None, features_scaled)
+    # Mock the get_logger method
+    mock_task.get_logger.return_value = None
 
     assert 'scores' in results
     assert isinstance(results['scores'], dict)

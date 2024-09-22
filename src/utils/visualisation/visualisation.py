@@ -3,7 +3,7 @@ import torch
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
-from umap import UMAP
+from sklearn.decomposition import PCA
 
 def get_embeddings(model, dataloader, device):
     model.eval()
@@ -15,7 +15,6 @@ def get_embeddings(model, dataloader, device):
             outputs = model.forward_once(images)
             embeddings.append(outputs.cpu().numpy())
             labels.extend(batch_labels.numpy())
-
     embeddings = np.vstack(embeddings)
     labels = np.array(labels)
     return embeddings, labels
@@ -50,14 +49,20 @@ def visualize_embeddings_umap(embeddings, labels, title):
     embeddings = embeddings[:n_samples]
     labels = labels[:n_samples]
 
-    print("Performing UMAP...")
-    umap = UMAP(n_components=2, random_state=42)
-    embeddings_2d = umap.fit_transform(embeddings)
+    print("Performing PCA...")
+    pca = PCA(n_components=2, random_state=42)
+    embeddings_2d = pca.fit_transform(embeddings)
 
     plt.figure(figsize=(10, 8))
     scatter = plt.scatter(embeddings_2d[:, 0], embeddings_2d[:, 1], c=labels, cmap='tab10')
     plt.colorbar(scatter)
     plt.title(title)
-    plt.xlabel('UMAP feature 1')
-    plt.ylabel('UMAP feature 2')
+    plt.xlabel('PCA component 1')
+    plt.ylabel('PCA component 2')
+    
+    # Add variance explained
+    var_explained = pca.explained_variance_ratio_
+    plt.xlabel(f'PCA component 1 ({var_explained[0]:.2%} variance explained)')
+    plt.ylabel(f'PCA component 2 ({var_explained[1]:.2%} variance explained)')
+    
     plt.show()
